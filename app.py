@@ -71,8 +71,8 @@ Respond with a JSON object:
   "passed": "passed"/"partial"/"failed",
   "reason": "Found X locations with audit dates. Y locations match expected dates. [If conflicts: Z locations have different/conflicting dates: list them]. Overall assessment: [explain]",
   "locations": [
-    "Section Name: 'exact date text from document' - MATCH/CONFLICT",
-    "Another Section: 'exact date text from document' - MATCH/CONFLICT"
+    "Section Name: 'exact date text from document' - Analysis: [explain why these dates match or conflict with expected]",
+    "Another Section: 'exact date text from document' - Analysis: [explain why these dates match or conflict with expected]"
   ]
 }}
 
@@ -111,9 +111,9 @@ Respond with a JSON object:
   "passed": "passed"/"partial"/"failed",
   "reason": "Primary type: [type]. Expected: [expected]. Found X mentions. [If conflicts: CONFLICT: found mention of [conflicting type]]",
   "locations": [
-    "Title/Header: 'exact text snippet'",
-    "Section: 'exact text snippet'",
-    "CONFLICT at [location]: 'exact text showing wrong type' (if any)"
+    "Title/Header: 'exact text snippet' - Analysis: [explain if this matches expected type]",
+    "Section: 'exact text snippet' - Analysis: [explain if this matches expected type]",
+    "[If conflict] Location: 'exact text showing wrong type' - Analysis: [explain why this conflicts with expected]"
   ]
 }}
 
@@ -171,14 +171,17 @@ JSON response:"""
 
 Your task:
 1. Scan the COMPLETE document - don't stop after finding just one occurrence
-2. Find EVERY single mention of this information (look in headers, body, footers, titles, sections)
-3. For EACH location, extract the EXACT TEXT snippet showing the information
-4. Check if mentions match the expected value: "{expected_value}"
-5. For organization names: Check if expected name appears in or matches the found text
-   - "CloudTech" should match "CloudTech Solutions, Inc." or "CloudTech Solutions"
-   - "XYZ Corp" should match "XYZ Corporation" or "XYZ Corp."
-   - Focus on the core organization name matching
-6. Look for ANY conflicting information (e.g., completely different organization names)
+2. Find EVERY single mention of the organization name (look in headers, body, footers, titles, sections)
+3. For EACH location, extract the EXACT TEXT snippet showing the organization name
+4. Check if mentions contain or match the expected value: "{expected_value}"
+5. FUZZY MATCHING RULES for organization names:
+   - If expected is "CloudTech" and document says "CloudTech Solutions, Inc." → MATCH
+   - If expected is "CloudTech Solutions" and document says "CloudTech Solutions, Inc." → MATCH
+   - If expected is "Acme Corp" and document says "Acme Corporation" or "Acme Corp." → MATCH
+   - The expected name must be CONTAINED within or substantially match the document name
+   - Ignore suffixes like Inc., LLC, Corp., Ltd., Co., etc.
+   - Minor punctuation differences are acceptable
+6. ONLY mark as DIFFERENT if the organization name is truly different (e.g., expecting "Acme" but finding "Beta Company")
 7. List ALL locations found
 
 Rule: {rule['name']}
@@ -198,9 +201,8 @@ Respond with a JSON object:
   "passed": "passed"/"partial"/"failed",
   "reason": "Found X total mentions of organization name. Expected: '{expected_value}'. All mentions contain this name [or Y mentions use different names]. [Brief explanation]",
   "locations": [
-    "Section/Location Name: 'exact text snippet from document' - MATCH/DIFFERENT",
-    "Another Location: 'exact text snippet from document' - MATCH/DIFFERENT",
-    "Yet Another Location: 'exact text snippet from document' - MATCH/DIFFERENT"
+    "Section/Location Name: 'exact text snippet from document' - Analysis: [explain why this matches or differs from expected]",
+    "Another Location: 'exact text snippet from document' - Analysis: [explain why this matches or differs from expected]"
   ]
 }}
 
