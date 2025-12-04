@@ -63,16 +63,16 @@ Document Content:
 
 Determine the status:
 - "passed": ALL date mentions match expected dates perfectly, no conflicts
-- "partial": MOST mentions match, but found 1-2 inconsistencies or questionable dates  
-- "failed": Many conflicts OR dates don't match expected at all
+- "partial": MOST mentions match (75%+), but found 1-2 inconsistencies or questionable dates  
+- "failed": Many conflicts (25%+) OR dates don't match expected at all
 
 Respond with a JSON object:
 {{
   "passed": "passed"/"partial"/"failed",
-  "reason": "Checked X locations with dates. Found: [summary]. [X match, Y conflicts]",
+  "reason": "Found X locations with audit dates. Y locations match expected dates. [If conflicts: Z locations have different/conflicting dates: list them]. Overall assessment: [explain]",
   "locations": [
-    "Section Name: 'exact date text from document'",
-    "Another Section: 'exact date text from document'"
+    "Section Name: 'exact date text from document' - MATCH/CONFLICT",
+    "Another Section: 'exact date text from document' - MATCH/CONFLICT"
   ]
 }}
 
@@ -95,14 +95,16 @@ STEP 2 - CHECK FOR CONFLICTS:
 
 STEP 3 - DETERMINE STATUS: 
 - Expected: "{expected_value}"
-- If ALL mentions match expected and ZERO conflicts: "passed"
-- If ANY conflicting mention found (even 1): "partial" or "failed"
-- If primary type is wrong: "failed"
+- IMPORTANT: Compare case-insensitively ("SOC 2 Type II" = "soc 2 type ii" = "SOC 2 TYPE II")
+- Normalize variations: "Type 2" = "Type II", "Type 1" = "Type I"
+- If ALL mentions match expected (semantically) and ZERO conflicts: "passed"
+- If ANY conflicting mention found (different SOC level or Type level): "partial" or "failed"
+- If primary type is completely wrong: "failed"
 
 Document Content:
 {document_text[:20000]}
 
-Be strict about conflicts. If you find ANY mention of a different SOC type or Type level, report it.
+Be strict about conflicts but flexible about formatting. Focus on semantic meaning of SOC 1/2 and Type I/II.
 
 Respond with a JSON object:
 {{
@@ -151,11 +153,17 @@ List any client/customer organizations found (excluding the service org).
 Respond with a JSON object:
 {{
   "passed": "passed"/"partial"/"failed",
-  "reason": "Based on [evidence], this appears to be a [generic/user-specific] report. [Found client org names or no specific client]. [Match/mismatch explanation]",
+  "reason": "Analysis: [Describe evidence found]. Determination: This is a [generic/user-specific] report because [reasoning]. Expected: {expected_value}. [MATCH or MISMATCH and why]",
   "locations": [
-    "Evidence: 'exact text snippet showing addressing or client references'"
+    "Evidence: 'exact text snippet showing addressing or client references'",
+    "[Additional evidence if any]"
   ]
 }}
+
+IMPORTANT: Match the determination to expectation:
+- If you determine it's generic and expected is generic → "passed"
+- If you determine it's user-specific and expected is user-specific → "passed"  
+- Otherwise → "failed"
 
 JSON response:"""
                 else:
@@ -165,9 +173,12 @@ Your task:
 1. Scan the COMPLETE document - don't stop after finding just one occurrence
 2. Find EVERY single mention of this information (look in headers, body, footers, titles, sections)
 3. For EACH location, extract the EXACT TEXT snippet showing the information
-4. Check if ALL mentions match the expected value: "{expected_value}"
-5. For names: Must match exactly (spelling, capitalization, punctuation)
-6. Look for ANY conflicting information (e.g., different names, spellings, or values)
+4. Check if mentions match the expected value: "{expected_value}"
+5. For organization names: Check if expected name appears in or matches the found text
+   - "CloudTech" should match "CloudTech Solutions, Inc." or "CloudTech Solutions"
+   - "XYZ Corp" should match "XYZ Corporation" or "XYZ Corp."
+   - Focus on the core organization name matching
+6. Look for ANY conflicting information (e.g., completely different organization names)
 7. List ALL locations found
 
 Rule: {rule['name']}
@@ -178,18 +189,18 @@ Document Content:
 {document_text[:20000]}
 
 Determine the status:
-- "passed": ALL mentions match expected value perfectly, no conflicts
-- "partial": MOST mentions match (75%+), but found 1-2 inconsistencies or conflicts
-- "failed": Many conflicts (25%+) OR value doesn't match expected at all
+- "passed": ALL mentions contain/match the expected name (allowing for full legal names, abbreviations like Inc., LLC, etc.)
+- "partial": MOST mentions match (75%+), but found 1-2 that use different names  
+- "failed": Many instances use completely different organization name OR expected name not found at all
 
 Respond with a JSON object:
 {{
   "passed": "passed"/"partial"/"failed",
-  "reason": "Found X total mentions. [X match exactly, Y have conflicts/differences]. [Brief explanation]",
+  "reason": "Found X total mentions of organization name. Expected: '{expected_value}'. All mentions contain this name [or Y mentions use different names]. [Brief explanation]",
   "locations": [
-    "Section/Location Name: 'exact text snippet from document'",
-    "Another Location: 'exact text snippet from document'",
-    "Yet Another Location: 'exact text snippet from document'"
+    "Section/Location Name: 'exact text snippet from document' - MATCH/DIFFERENT",
+    "Another Location: 'exact text snippet from document' - MATCH/DIFFERENT",
+    "Yet Another Location: 'exact text snippet from document' - MATCH/DIFFERENT"
   ]
 }}
 
