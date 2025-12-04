@@ -46,31 +46,31 @@ def check_rule_with_llm(rule, document_text, user_inputs=None):
 
 Your task:
 1. Find EVERY place where audit period dates are mentioned
-2. Check if they all match the expected dates (semantically)
-3. Dates can be in different formats but must mean the same thing:
+2. For EACH location, extract the EXACT TEXT snippet containing the dates
+3. Check if dates match the expected dates (semantically):
    - "January 1, 2025" = "1 Jan 2025" = "Jan 1, 2025" (all acceptable)
    - "June 30" = "30 June" = "30th of June" (all acceptable)
-4. List ALL locations where dates appear
-5. If ANY location has different dates, report the inconsistency
+4. Look for ANY conflicting or inconsistent dates throughout the document
+5. If MOST locations match but 1-2 have issues, return "partial"
+6. If dates are completely wrong or many conflicts exist, return false
 
 Expected Dates: "{expected_value}"
 
 Document Content:
 {document_text[:15000]}
 
-Provide a clear explanation that helps the user understand:
-- What dates you found in the document
-- Where you found them (list all locations)
-- Whether they match the expected dates
-- If there are any inconsistencies between different parts of the document
+Determine the status:
+- "passed": ALL mentions match expected dates perfectly
+- "partial": MOST mentions match, but found 1-2 inconsistencies or questionable dates
+- "failed": Many conflicts OR dates don't match expected at all
 
 Respond with a JSON object:
 {{
-  "passed": true/false,
-  "reason": "Clear explanation of what dates were found and whether they all match expectations",
+  "passed": "passed"/"partial"/"failed",
+  "reason": "Clear explanation with specific counts (e.g., '5 out of 6 locations match')",
   "locations": [
-    "Section/Location: dates found",
-    "Another location: dates found"
+    "Section Name: 'exact text snippet from document'",
+    "Another Section: 'exact text snippet from document'"
   ]
 }}
 
@@ -78,46 +78,86 @@ JSON response:"""
         else:
             # Special handling for report type to be more explicit
             if 'report_type' in input_key.lower() or 'classification' in rule['name'].lower():
-                prompt = f"""You are validating a SOC report type. Your task is to find what type of report this actually is, then compare it to what was expected.
+                prompt = f"""You are validating a SOC report type. Search the ENTIRE document for ALL mentions of the report type.
 
-STEP 1 - EXTRACT: Look at the document and find where it states the report type:
-- Check the TITLE (first line of the document)
-- Check any headers mentioning "SOC"
-- The document will explicitly say "SOC 1" or "SOC 2" and "Type I" or "Type II" or "Type 2"
+STEP 1 - EXTRACT ALL: Find EVERY place where report type is mentioned:
+- Title/Header (first lines of document)
+- Body text mentioning "SOC 1" or "SOC 2"
+- Any mention of "Type I", "Type II", "Type 1", or "Type 2"
+- Extract the EXACT TEXT for each mention
 
-STEP 2 - COMPARE: Compare what you found with the expected value.
+STEP 2 - CHECK FOR CONFLICTS: 
+- Do all mentions agree on the same report type?
+- Are there any conflicting references (e.g., title says SOC 2 but body mentions SOC 1)?
+- Even one mention of wrong type is a conflict!
+
+STEP 3 - COMPARE: 
 - Expected: "{expected_value}"
-- If they match, PASS
-- If they don't match, FAIL
-
-STEP 3 - EXPLAIN: Write a clear explanation for the user:
-- State what type you found in the document
-- State whether it matches the expected type
-- List all locations where you verified this
+- If ALL mentions match expected and no conflicts: "passed"
+- If mostly correct but 1-2 conflicting mentions: "partial" 
+- If wrong type or many conflicts: "failed"
 
 Document Content:
 {document_text[:15000]}
 
 Respond with a JSON object:
 {{
-  "passed": true/false,
-  "reason": "This report is a [type found]. Expected: [expected type]. [Match/Mismatch explanation]",
+  "passed": "passed"/"partial"/"failed",
+  "reason": "This report is [type]. Expected: [expected]. Found X mentions, Y conflicts. [Explanation]",
   "locations": [
-    "Title/Header: [exact text showing report type]",
-    "Other mentions: [list other places]"
+    "Title/Header: 'exact text snippet'",
+    "Section: 'exact text snippet'",
+    "Conflict found: 'exact text snippet' (if any)"
   ]
 }}
 
 JSON response:"""
             else:
-                prompt = f"""You are a SOC report validator. Search the ENTIRE document and find ALL places where this information appears.
+                # Special handling for report specificity - use reasoning
+                if 'specificity' in input_key.lower() or 'specificity' in rule['name'].lower():
+                    prompt = f"""You are analyzing whether a SOC report is generic or user-entity specific.
+
+User expects: "{expected_value}"
+
+Analyze the document to determine specificity:
+
+Generic Report indicators:
+- Addressed "To Whom It May Concern" or "To Users of [Service Org] Services"
+- No specific client organization named as the recipient
+- Intended for broad distribution
+- Language like "users of this report" or "user entities"
+
+User-Entity Specific indicators:
+- Addressed to a specific company/organization
+- References a particular client by name
+- Custom scope or specific user entity controls mentioned
+- Language like "prepared for [Company Name]"
+
+Document Content:
+{document_text[:15000]}
+
+Provide reasoning about what type it is and whether it matches expectation.
+
+Respond with a JSON object:
+{{
+  "passed": "passed"/"partial"/"failed",
+  "reason": "Based on [evidence], this appears to be a [generic/user-specific] report. [Match/mismatch explanation]",
+  "locations": [
+    "Evidence found: 'exact text snippet showing specificity indicators'"
+  ]
+}}
+
+JSON response:"""
+                else:
+                    prompt = f"""You are a SOC report validator. Search the ENTIRE document and find ALL places where this information appears.
 
 Your task:
 1. Find EVERY mention of this information in the document
-2. Check if ALL mentions match the expected value: "{expected_value}"
-3. For names: Must match exactly (spelling, capitalization)
-4. List all locations checked
-5. Explain clearly to the user what you found
+2. For EACH location, extract the EXACT TEXT snippet
+3. Check if ALL mentions match the expected value: "{expected_value}"
+4. For names: Must match exactly (spelling, capitalization)
+5. Look for ANY conflicting information (e.g., different names or values)
+6. If MOST mentions match but 1-2 have issues, return "partial"
 
 Rule: {rule['name']}
 
@@ -126,19 +166,18 @@ Expected Value: "{expected_value}"
 Document Content:
 {document_text[:15000]}
 
-Provide a clear explanation that helps the user understand:
-- What you found in the document
-- Where you found it (list all locations)
-- Whether it matches their expectation
-- If there are any inconsistencies
+Determine the status:
+- "passed": ALL mentions match expected value perfectly, no conflicts
+- "partial": MOST mentions match, but found 1-2 inconsistencies or conflicts
+- "failed": Many conflicts OR value doesn't match expected at all
 
 Respond with a JSON object:
 {{
-  "passed": true/false,
-  "reason": "Clear explanation of what was found and whether it matches",
+  "passed": "passed"/"partial"/"failed",
+  "reason": "Clear explanation with counts if applicable (e.g., '4 out of 5 mentions match')",
   "locations": [
-    "Section/Location: value found",
-    "Another location: value found"
+    "Section Name: 'exact text snippet from document'",
+    "Another Section: 'exact text snippet from document'"
   ]
 }}
 
@@ -199,8 +238,17 @@ JSON response:"""
         if not locations and 'location' in result:
             locations = [result['location']]
         
+        # Handle passed field which can be boolean or string ("passed", "partial", "failed")
+        passed_value = result.get('passed', False)
+        if isinstance(passed_value, str):
+            passed_status = passed_value.lower()
+        elif passed_value is True:
+            passed_status = "passed"
+        else:
+            passed_status = "failed"
+        
         return {
-            'passed': result.get('passed', False),
+            'passed': passed_status,
             'reason': result.get('reason', 'No reason provided'),
             'locations': locations
         }
@@ -268,14 +316,17 @@ def upload_file():
         
         # Calculate summary
         total_rules = len(results)
-        passed_rules = sum(1 for r in results if r['passed'])
+        passed_rules = sum(1 for r in results if r['passed'] == 'passed')
+        partial_rules = sum(1 for r in results if r['passed'] == 'partial')
+        failed_rules = sum(1 for r in results if r['passed'] == 'failed')
         
         return jsonify({
             'success': True,
             'summary': {
                 'total': total_rules,
                 'passed': passed_rules,
-                'failed': total_rules - passed_rules
+                'partial': partial_rules,
+                'failed': failed_rules
             },
             'results': results
         })

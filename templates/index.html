@@ -207,6 +207,10 @@
             color: #10b981;
         }
 
+        .stat.partial .stat-number {
+            color: #f59e0b;
+        }
+
         .stat.failed .stat-number {
             color: #ef4444;
         }
@@ -230,6 +234,10 @@
 
         .rule-card.passed {
             border-left-color: #10b981;
+        }
+
+        .rule-card.partial {
+            border-left-color: #f59e0b;
         }
 
         .rule-card.failed {
@@ -262,6 +270,11 @@
         .rule-status.passed {
             background: #d1fae5;
             color: #065f46;
+        }
+
+        .rule-status.partial {
+            background: #fef3c7;
+            color: #92400e;
         }
 
         .rule-status.failed {
@@ -383,6 +396,10 @@
                         <div class="stat-number" id="passedRules">0</div>
                         <div class="stat-label">Passed</div>
                     </div>
+                    <div class="stat partial">
+                        <div class="stat-number" id="partialRules">0</div>
+                        <div class="stat-label">Partial</div>
+                    </div>
                     <div class="stat failed">
                         <div class="stat-number" id="failedRules">0</div>
                         <div class="stat-label">Failed</div>
@@ -494,14 +511,16 @@
         function displayResults(data) {
             document.getElementById('totalRules').textContent = data.summary.total;
             document.getElementById('passedRules').textContent = data.summary.passed;
+            document.getElementById('partialRules').textContent = data.summary.partial || 0;
             document.getElementById('failedRules').textContent = data.summary.failed;
 
             const ruleResults = document.getElementById('ruleResults');
             ruleResults.innerHTML = '';
 
             data.results.forEach(result => {
+                const statusClass = result.passed; // "passed", "partial", or "failed"
                 const card = document.createElement('div');
-                card.className = `rule-card ${result.passed ? 'passed' : 'failed'}`;
+                card.className = `rule-card ${statusClass}`;
                 
                 // Build locations HTML
                 let locationsHTML = '';
@@ -515,11 +534,24 @@
                     `;
                 }
                 
+                // Determine status icon and text
+                let statusIcon, statusText;
+                if (statusClass === 'passed') {
+                    statusIcon = '✓';
+                    statusText = 'Passed';
+                } else if (statusClass === 'partial') {
+                    statusIcon = '⚠';
+                    statusText = 'Partial Pass';
+                } else {
+                    statusIcon = '✗';
+                    statusText = 'Failed';
+                }
+                
                 card.innerHTML = `
                     <div class="rule-header">
                         <div class="rule-name">${result.rule_name}</div>
-                        <div class="rule-status ${result.passed ? 'passed' : 'failed'}">
-                            ${result.passed ? '✓ Passed' : '✗ Failed'}
+                        <div class="rule-status ${statusClass}">
+                            ${statusIcon} ${statusText}
                         </div>
                     </div>
                     <div class="rule-reason"><strong>Finding:</strong> ${result.reason}</div>
