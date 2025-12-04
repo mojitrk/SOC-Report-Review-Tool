@@ -38,19 +38,29 @@ def check_rule_with_llm(rule, document_text, user_inputs=None):
         input_key = rule.get('input_key')
         expected_value = user_inputs.get(input_key, '')
         
-        prompt = f"""You are reviewing a SOC report. You need to validate information against expected values.
+        prompt = f"""You are a strict SOC report validator. Your job is to extract specific information from the report and verify it EXACTLY matches the expected value.
+
+IMPORTANT INSTRUCTIONS:
+1. Extract the EXACT text from the document that relates to this rule
+2. Compare it character-by-character with the expected value
+3. Be EXTREMELY strict - even minor differences mean FAILURE
+4. If dates have the same meaning but different format (e.g., "Jan 1" vs "January 1"), that is still a MISMATCH
+5. Do NOT be lenient or forgiving - exact match only
 
 Rule: {rule['name']}
-Description: {rule['description']}
+Task: {rule['description']}
 
-Expected Value: {expected_value}
+Expected Value: "{expected_value}"
 
 Document Content:
-{document_text[:8000]}  # Limit to avoid token limits
+{document_text[:10000]}
 
-Does the document contain information that matches the expected value?
-Respond with ONLY a JSON object in this exact format:
-{{"passed": true/false, "reason": "brief explanation including what was found in the document"}}"""
+You MUST respond with ONLY a valid JSON object (no markdown, no extra text) in this exact format:
+{{"passed": true, "reason": "Found: [exact text from document]. Matches expected value."}} 
+OR
+{{"passed": false, "reason": "Found: [exact text from document]. Does not match expected: [expected value]."}}
+
+JSON response:"""
     else:
         prompt = f"""You are reviewing a SOC report. You need to determine if the following rule is satisfied.
 
@@ -58,21 +68,32 @@ Rule: {rule['name']}
 Description: {rule['description']}
 
 Document Content:
-{document_text[:8000]}  # Limit to avoid token limits
+{document_text[:10000]}
 
 Based on the document content, does this SOC report satisfy the rule?
-Respond with ONLY a JSON object in this exact format:
-{{"passed": true/false, "reason": "brief explanation"}}"""
+Respond with ONLY a valid JSON object (no markdown, no extra text) in this exact format:
+{{"passed": true/false, "reason": "brief explanation"}}
+
+JSON response:"""
 
     try:
-        response = ollama.chat(model='llama3.2:3b', messages=[
+        response = ollama.chat(model='llama3.2', messages=[
             {
                 'role': 'user',
                 'content': prompt
             }
-        ])
+        ], options={
+            'temperature': 0.1  # Lower temperature for more consistent, deterministic outputs
+        })
         
         result_text = response['message']['content'].strip()
+        
+        # Remove markdown code blocks if present
+        if result_text.startswith('```'):
+            lines = result_text.split('\n')
+            result_text = '\n'.join(lines[1:-1]) if len(lines) > 2 else result_text
+        
+        result_text = result_text.strip()
         
         # Try to extract JSON from the response
         # Sometimes LLMs add extra text, so we look for the JSON object
@@ -80,11 +101,21 @@ Respond with ONLY a JSON object in this exact format:
         end = result_text.rfind('}') + 1
         if start != -1 and end > start:
             result_text = result_text[start:end]
+        else:
+            raise ValueError(f"No valid JSON found in response: {result_text[:200]}")
+        
+        # Clean up common JSON formatting issues
+        result_text = result_text.replace('\n', ' ').replace('\r', '')
         
         result = json.loads(result_text)
         return {
             'passed': result.get('passed', False),
             'reason': result.get('reason', 'No reason provided')
+        }
+    except json.JSONDecodeError as e:
+        return {
+            'passed': False,
+            'reason': f'LLM response parsing error. Please try again. (Invalid JSON: {str(e)})'
         }
     except Exception as e:
         return {

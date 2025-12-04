@@ -2,35 +2,29 @@
   "rules": [
     {
       "name": "Service Organization Name",
-      "description": "Verify that the report identifies the service organization name (the company being audited).",
+      "description": "Extract the service organization name from the report and verify it EXACTLY matches the expected name. The names must be identical - even minor differences in spelling, capitalization, or punctuation should result in failure.",
       "requires_input": true,
       "input_label": "Expected Service Organization Name",
       "input_key": "service_org_name"
     },
     {
-      "name": "Audit Period Start Date",
-      "description": "Verify that the audit period start date in the report matches the expected date.",
+      "name": "Audit Period",
+      "description": "Extract both the start date and end date of the audit period from the report. Verify that BOTH dates EXACTLY match the expected dates. Even if the meaning is the same (e.g., '1 Jan' vs 'January 1'), they must match the expected format and values precisely.",
       "requires_input": true,
-      "input_label": "Expected Audit Start Date",
-      "input_key": "audit_start_date"
-    },
-    {
-      "name": "Audit Period End Date",
-      "description": "Verify that the audit period end date in the report matches the expected date.",
-      "requires_input": true,
-      "input_label": "Expected Audit End Date",
-      "input_key": "audit_end_date"
+      "input_label": "Expected Audit Period",
+      "input_key": "audit_period",
+      "input_format": "start_date and end_date (e.g., January 1, 2025 and June 30, 2025)"
     },
     {
       "name": "Report Type Classification",
-      "description": "Verify that the report type (SOC 1 or SOC 2, Type I or Type II) matches the expected classification.",
+      "description": "Extract the exact report type from the document (must explicitly state SOC 1 or SOC 2, and Type I or Type II). Verify it EXACTLY matches the expected report type. Be very strict - do not infer or assume the type.",
       "requires_input": true,
       "input_label": "Expected Report Type (e.g., SOC 2 Type II)",
       "input_key": "report_type"
     },
     {
       "name": "Report Specificity",
-      "description": "Verify that the report specificity (generic or user-entity specific) matches expectations.",
+      "description": "Determine if the report is generic (for multiple users) or user-entity specific (for a particular organization). Verify it matches the expected specificity.",
       "requires_input": true,
       "input_label": "Expected Specificity (generic or user-specific)",
       "input_key": "report_specificity"
