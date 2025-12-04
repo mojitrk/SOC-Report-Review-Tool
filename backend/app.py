@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify, send_from_directory
 import os
 from docx import Document
 import requests
+import json
+import uuid
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 
@@ -29,7 +31,8 @@ def check_report():
         return jsonify({'error': 'Missing required fields'}), 400
 
     # Save file
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], str(uuid.uuid4()) + '_' + file.filename)
     file.save(file_path)
 
     # Extract text
@@ -39,21 +42,16 @@ def check_report():
     except Exception as e:
         return jsonify({'error': f'Error extracting text: {str(e)}'}), 500
 
-    # Build prompt
-    prompt = f"""You are an expert IT auditor conducting a stringent review of a SOC report. Your task is to meticulously verify the following:
-
-1. Client Name: The report must consistently refer to the client as "{client_name}". Check every mention and report any variations, omissions, or inconsistencies.
-
-2. Audit Period: The audit period must be exactly from "{start_date}" to "{end_date}". Verify all date references in the report match this period precisely. Report any discrepancies, such as wrong dates, missing dates, or inconsistent formatting.
-
-Report Text:
-{text}
-
-Provide a detailed, objective analysis:
-- Confirm if the client name matches exactly.
-- Confirm if the audit period dates are correct and consistent.
-- Highlight any errors, inconsistencies, or areas of concern.
-- Be extremely thorough and do not overlook any details."""
+    # Load rules and build prompt
+    rules = json.load(open('../rules.json'))
+    prompt_parts = ["You are an expert IT auditor conducting a stringent review of a SOC report. Your task is to meticulously verify the following:"]
+    for check in rules['checks']:
+        desc = check['description']
+        check_prompt = check['prompt'].replace('${clientName}', client_name).replace('${startDate}', start_date).replace('${endDate}', end_date)
+        prompt_parts.append(f"- {desc}: {check_prompt}")
+    prompt_parts.append(f"\nReport Text:\n{text}")
+    prompt_parts.append("\nProvide a detailed, objective analysis: Confirm each check, highlight any errors or inconsistencies. Be extremely thorough.")
+    prompt = '\n'.join(prompt_parts)
 
     # Call Ollama
     try:
