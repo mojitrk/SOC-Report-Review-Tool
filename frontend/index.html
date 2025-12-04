@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC Report Review Tool - KPMG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .compliance-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .compliance-score h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .score-value {
+            font-size: 48px;
+            font-weight: bold;
+        }
+
+        .score-subtext {
+            font-size: 12px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .rule-item {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .rule-item.satisfied {
+            border-left-color: #4caf50;
+            background: #f1f8f6;
+        }
+
+        .rule-item.not-satisfied {
+            border-left-color: #f44336;
+            background: #fef5f5;
+        }
+
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .rule-name {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.passed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-badge.failed {
+            background: #f44336;
+            color: white;
+        }
+
+        .importance {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .importance.critical {
+            color: #f44336;
+            font-weight: 600;
+        }
+
+        .importance.high {
+            color: #ff9800;
+            font-weight: 600;
+        }
+
+        .reasoning {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .confidence {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            border-left: 4px solid #f44336;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SOC Report Review Tool</h1>
+            <p>KPMG Audit Compliance Checker - Powered by Llama LLM</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>📄 SOC Report</h2>
+                <textarea id="reportText" placeholder="Paste your SOC report here..."></textarea>
+                <button onclick="reviewReport()" id="reviewBtn">Review Report</button>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px; color: #667eea;">Analyzing with Llama...</p>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="panel">
+                <h2>✓ Review Results</h2>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        async function reviewReport() {
+            const reportText = document.getElementById('reportText').value.trim();
+            const resultsDiv = document.getElementById('results');
+            const loading = document.getElementById('loading');
+            const reviewBtn = document.getElementById('reviewBtn');
+
+            if (!reportText) {
+                resultsDiv.innerHTML = '<div class="error">Please paste a SOC report to review.</div>';
+                return;
+            }
+
+            loading.style.display = 'block';
+            reviewBtn.disabled = true;
+            resultsDiv.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_URL}/review`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ report_text: reportText })
+                });
+
+                loading.style.display = 'none';
+
+                if (!response.ok) {
+                    throw new Error('Review failed');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (error) {
+                loading.style.display = 'none';
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}. Make sure the backend is running on port 5000.</div>`;
+            } finally {
+                reviewBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            let html = `
+                <div class="compliance-score">
+                    <h3>Compliance Score</h3>
+                    <div class="score-value">${data.compliance_score}%</div>
+                    <div class="score-subtext">${data.satisfied_rules} of ${data.total_rules} rules satisfied</div>
+                </div>
+            `;
+
+            data.results.forEach(rule => {
+                const statusClass = rule.satisfied ? 'satisfied' : 'not-satisfied';
+                const statusBadge = rule.satisfied ? 'passed' : 'failed';
+                const statusText = rule.satisfied ? '✓ Passed' : '✗ Failed';
+                const importanceClass = rule.importance === 'critical' ? 'critical' : 'high';
+
+                html += `
+                    <div class="rule-item ${statusClass}">
+                        <div class="rule-header">
+                            <span class="rule-name">${rule.rule_name}</span>
+                            <span class="status-badge ${statusBadge}">${statusText}</span>
+                        </div>
+                        <div class="importance ${importanceClass}">Importance: ${rule.importance.toUpperCase()}</div>
+                        <div class="reasoning">${rule.reasoning}</div>
+                        <div class="confidence">Confidence: ${(rule.confidence * 100).toFixed(0)}%</div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Load sample report on page load
+        window.addEventListener('load', () => {
+            document.getElementById('reportText').value = `SOC 2 Type II Report
+Audit Period: January 1, 2024 to December 31, 2024
+
+Executive Summary
+This SOC 2 Type II report covers the examination of controls at TechCorp Inc. during the period from January 1, 2024 to December 31, 2024.
+
+Client Entity
+The subject entity under audit is TechCorp Inc., a leading technology services provider.
+
+Management Responsibility
+Management of TechCorp Inc. is responsible for establishing and maintaining effective internal controls and for the integrity of the financial reporting and data security processes.
+
+Scope of Work
+The scope of our engagement included testing controls over system access, change management, incident management, and disaster recovery procedures. We evaluated the operating effectiveness of these controls throughout the audit period.
+
+Testing Procedures
+We performed the following testing procedures:
+1. Sampled 30 user access requests from a population of 500
+2. Tested 15 change requests for proper approval
+3. Reviewed 10 incident reports for timely resolution
+4. Verified backup and recovery procedures were tested
+
+Control Exceptions
+During our testing, we identified one minor deviation where a change request lacked supervisory approval. Management implemented a corrective action immediately.
+
+Conclusion
+Based on our procedures and testing performed, the controls were operating effectively throughout the audit period to provide reasonable assurance.
+
+Auditor Sign-Off
+Reviewed and approved by: Jane Smith, Senior Audit Manager
+Date: March 15, 2024`;
+        });
+    </script>
+</body>
+</html>
