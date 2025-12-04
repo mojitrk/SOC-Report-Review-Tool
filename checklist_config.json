@@ -1,0 +1,144 @@
+{
+  "checklist_name": "SOC 2 Report Review Checklist",
+  "checklist_version": "1.0",
+  "description": "Comprehensive checklist for SOC 2 report validation",
+  "rules": [
+    {
+      "rule_id": "audit_period_match",
+      "rule_name": "Audit Period Match",
+      "description": "The audit period in the report must match exactly with the specified audit period",
+      "severity": "critical",
+      "check_type": "exact_match",
+      "expected_value": "January 1, 2023 to December 31, 2023",
+      "search_pattern": "Period:\\s*(.+?)\\s*to\\s*(.+?)(?:\\.|\\n|$)",
+      "explanation_template": "The audit period in the report must be 'January 1, 2023 to December 31, 2023'. Found: {found_value}"
+    },
+    {
+      "rule_id": "company_name_present",
+      "rule_name": "Company Name Presence",
+      "description": "The report must contain the company name 'Acme Cloud Services, Inc.'",
+      "severity": "critical",
+      "check_type": "keyword",
+      "keywords": ["Acme Cloud Services, Inc."],
+      "required_count": 1,
+      "explanation_template": "The report must explicitly mention the company name 'Acme Cloud Services, Inc.'. This was found {found_count} times (required: at least 1)."
+    },
+    {
+      "rule_id": "management_assertion_section",
+      "rule_name": "Management Assertion Section",
+      "description": "The report must contain a 'Management's Assertion' section",
+      "severity": "critical",
+      "check_type": "section_header",
+      "section_name": "Management's Assertion",
+      "explanation_template": "The report must include a 'Management's Assertion' section as required by SOC 2 standards."
+    },
+    {
+      "rule_id": "auditor_opinion_section",
+      "rule_name": "Auditor's Opinion Section",
+      "description": "The report must contain an 'Auditor's Opinion' section",
+      "severity": "critical",
+      "check_type": "section_header",
+      "section_name": "Auditor's Opinion",
+      "explanation_template": "The report must include an 'Auditor's Opinion' section as required by SOC 2 standards."
+    },
+    {
+      "rule_id": "criteria_coverage",
+      "rule_name": "Trust Services Criteria Coverage",
+      "description": "The report must address all five Trust Services Criteria: Security, Availability, Processing Integrity, Confidentiality, and Privacy",
+      "severity": "critical",
+      "check_type": "keyword",
+      "keywords": ["Security", "Availability", "Processing Integrity", "Confidentiality", "Privacy"],
+      "required_count": 5,
+      "explanation_template": "The report must cover all five Trust Services Criteria. Found: {found_keywords}"
+    },
+    {
+      "rule_id": "encryption_standards",
+      "rule_name": "Encryption Standards Mentioned",
+      "description": "The report must mention specific encryption standards (AES-256 or TLS 1.2+)",
+      "severity": "critical",
+      "check_type": "keyword",
+      "keywords": ["AES-256", "TLS 1.2", "encryption"],
+      "required_count": 2,
+      "explanation_template": "The report must specify encryption standards such as AES-256 or TLS 1.2. Found {found_count} mentions (required: at least 2)."
+    },
+    {
+      "rule_id": "multi_factor_auth",
+      "rule_name": "Multi-Factor Authentication Controls",
+      "description": "The report must mention multi-factor authentication (MFA) implementation",
+      "severity": "high",
+      "check_type": "keyword",
+      "keywords": ["multi-factor authentication", "MFA", "two-factor"],
+      "required_count": 1,
+      "explanation_template": "The report must document multi-factor authentication controls. MFA must be mentioned at least once."
+    },
+    {
+      "rule_id": "backup_recovery_mentioned",
+      "rule_name": "Backup and Recovery Controls",
+      "description": "The report must mention backup, disaster recovery, RTO, or RPO",
+      "severity": "high",
+      "check_type": "keyword",
+      "keywords": ["backup", "disaster recovery", "RTO", "RPO", "recovery"],
+      "required_count": 2,
+      "explanation_template": "The report must include backup and recovery controls. Found {found_count} mentions (required: at least 2)."
+    },
+    {
+      "rule_id": "access_control_documented",
+      "rule_name": "Access Control Documentation",
+      "description": "The report must document role-based access control (RBAC) and principle of least privilege",
+      "severity": "high",
+      "check_type": "keyword",
+      "keywords": ["role-based access control", "RBAC", "least privilege", "access control"],
+      "required_count": 2,
+      "explanation_template": "The report must describe access control mechanisms including RBAC and least privilege principle. Found {found_count} mentions (required: at least 2)."
+    },
+    {
+      "rule_id": "testing_performed",
+      "rule_name": "Control Testing Summary",
+      "description": "The report must include a summary of control tests performed",
+      "severity": "high",
+      "check_type": "keyword",
+      "keywords": ["tested", "testing", "test results", "controls tested"],
+      "required_count": 2,
+      "explanation_template": "The report must document the testing performed on controls. Found {found_count} mentions (required: at least 2)."
+    },
+    {
+      "rule_id": "management_responsibilities",
+      "rule_name": "Management Responsibilities Stated",
+      "description": "The report must clearly state management's responsibilities for controls",
+      "severity": "medium",
+      "check_type": "keyword",
+      "keywords": ["management responsibility", "responsible for", "management is responsible"],
+      "required_count": 1,
+      "explanation_template": "The report must clearly articulate management's responsibilities. This responsibility statement must be mentioned at least once."
+    },
+    {
+      "rule_id": "report_date_present",
+      "rule_name": "Report Date Presence",
+      "description": "The report must have a report date specified",
+      "severity": "high",
+      "check_type": "keyword",
+      "keywords": ["Report Date:", "report date", "dated"],
+      "required_count": 1,
+      "explanation_template": "The report must include a report date. This was found {found_count} times (required: at least 1)."
+    },
+    {
+      "rule_id": "conclusion_section",
+      "rule_name": "Conclusion Section",
+      "description": "The report must include a conclusion section",
+      "severity": "medium",
+      "check_type": "section_header",
+      "section_name": "Conclusion",
+      "explanation_template": "The report must include a Conclusion section summarizing the auditor's findings and opinions."
+    },
+    {
+      "rule_id": "no_critical_errors",
+      "rule_name": "No Critical Errors in Content",
+      "description": "The report should not contain obvious errors like incomplete sections or placeholder text",
+      "severity": "high",
+      "check_type": "negative_keyword",
+      "keywords": ["TBD", "[PLACEHOLDER]", "[INCOMPLETE]", "TODO"],
+      "required_count": 0,
+      "explanation_template": "The report contains {found_count} critical errors (placeholder text, incomplete sections, or TODOs found). This should be 0."
+    }
+  ]
+}
