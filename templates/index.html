@@ -294,6 +294,15 @@
             border-left: 3px solid #fbbf24;
         }
 
+        .rule-location ul {
+            list-style-type: disc;
+        }
+
+        .rule-location li {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+
         .error-message {
             background: #fee2e2;
             color: #991b1b;
@@ -493,7 +502,19 @@
             data.results.forEach(result => {
                 const card = document.createElement('div');
                 card.className = `rule-card ${result.passed ? 'passed' : 'failed'}`;
-                const locationHTML = result.location ? `<div class="rule-location"><strong>📍 Location:</strong> ${result.location}</div>` : '';
+                
+                // Build locations HTML
+                let locationsHTML = '';
+                if (result.locations && result.locations.length > 0) {
+                    const locationItems = result.locations.map(loc => `<li>${loc}</li>`).join('');
+                    locationsHTML = `
+                        <div class="rule-location">
+                            <strong>📍 Locations Checked (${result.locations.length}):</strong>
+                            <ul style="margin: 8px 0 0 20px; padding: 0;">${locationItems}</ul>
+                        </div>
+                    `;
+                }
+                
                 card.innerHTML = `
                     <div class="rule-header">
                         <div class="rule-name">${result.rule_name}</div>
@@ -501,9 +522,8 @@
                             ${result.passed ? '✓ Passed' : '✗ Failed'}
                         </div>
                     </div>
-                    <div class="rule-description">${result.description}</div>
-                    <div class="rule-reason"><strong>Analysis:</strong> ${result.reason}</div>
-                    ${locationHTML}
+                    <div class="rule-reason"><strong>Finding:</strong> ${result.reason}</div>
+                    ${locationsHTML}
                 `;
                 ruleResults.appendChild(card);
             });

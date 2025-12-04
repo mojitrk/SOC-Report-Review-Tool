@@ -42,51 +42,105 @@ def check_rule_with_llm(rule, document_text, user_inputs=None):
         is_date_rule = 'audit_period' in input_key.lower() or 'date' in rule['name'].lower()
         
         if is_date_rule:
-            prompt = f"""You are a SOC report validator. Extract date information and verify it semantically matches the expected value.
+            prompt = f"""You are validating audit period dates in a SOC report. Search the ENTIRE document for all date mentions.
 
-IMPORTANT INSTRUCTIONS FOR DATES:
-1. Find the EXACT text snippet from the document containing the dates
-2. Dates with the same MEANING should PASS even if formatted differently
-3. Examples of equivalent dates: "30 Jun", "30th June", "June 30", "30th of June" - all mean June 30
-4. "January 1, 2025", "1 Jan 2025", "1st January 2025" - all mean January 1, 2025
-5. The year, month, and day must match semantically, not character-by-character
-6. Extract the LOCATION in the document where you found this information (page number, section, or first few words of the paragraph)
+Your task:
+1. Find EVERY place where audit period dates are mentioned
+2. Check if they all match the expected dates (semantically)
+3. Dates can be in different formats but must mean the same thing:
+   - "January 1, 2025" = "1 Jan 2025" = "Jan 1, 2025" (all acceptable)
+   - "June 30" = "30 June" = "30th of June" (all acceptable)
+4. List ALL locations where dates appear
+5. If ANY location has different dates, report the inconsistency
 
-Rule: {rule['name']}
-Task: {rule['description']}
-
-Expected Value: "{expected_value}"
+Expected Dates: "{expected_value}"
 
 Document Content:
-{document_text[:10000]}
+{document_text[:15000]}
 
-You MUST respond with ONLY a valid JSON object in this exact format:
-{{"passed": true, "reason": "Found: [exact text]. Semantically matches expected.", "location": "Found in: [describe where in document]"}} 
-OR
-{{"passed": false, "reason": "Found: [exact text]. Does not match expected: [expected value].", "location": "Found in: [describe where in document]"}}
+Provide a clear explanation that helps the user understand:
+- What dates you found in the document
+- Where you found them (list all locations)
+- Whether they match the expected dates
+- If there are any inconsistencies between different parts of the document
+
+Respond with a JSON object:
+{{
+  "passed": true/false,
+  "reason": "Clear explanation of what dates were found and whether they all match expectations",
+  "locations": [
+    "Section/Location: dates found",
+    "Another location: dates found"
+  ]
+}}
 
 JSON response:"""
         else:
-            prompt = f"""You are a strict SOC report validator. Extract specific information and verify it matches the expected value.
+            # Special handling for report type to be more explicit
+            if 'report_type' in input_key.lower() or 'classification' in rule['name'].lower():
+                prompt = f"""You are validating a SOC report type. Your task is to find what type of report this actually is, then compare it to what was expected.
 
-IMPORTANT INSTRUCTIONS:
-1. Find the EXACT text from the document that relates to this rule
-2. For names: Must match exactly (spelling, capitalization, punctuation)
-3. For report types: Look at the TITLE PAGE and HEADER - the report explicitly states what type it is (SOC 1/SOC 2, Type I/Type II)
-4. Extract the LOCATION where you found this information (section name, or first few words nearby)
+STEP 1 - EXTRACT: Look at the document and find where it states the report type:
+- Check the TITLE (first line of the document)
+- Check any headers mentioning "SOC"
+- The document will explicitly say "SOC 1" or "SOC 2" and "Type I" or "Type II" or "Type 2"
+
+STEP 2 - COMPARE: Compare what you found with the expected value.
+- Expected: "{expected_value}"
+- If they match, PASS
+- If they don't match, FAIL
+
+STEP 3 - EXPLAIN: Write a clear explanation for the user:
+- State what type you found in the document
+- State whether it matches the expected type
+- List all locations where you verified this
+
+Document Content:
+{document_text[:15000]}
+
+Respond with a JSON object:
+{{
+  "passed": true/false,
+  "reason": "This report is a [type found]. Expected: [expected type]. [Match/Mismatch explanation]",
+  "locations": [
+    "Title/Header: [exact text showing report type]",
+    "Other mentions: [list other places]"
+  ]
+}}
+
+JSON response:"""
+            else:
+                prompt = f"""You are a SOC report validator. Search the ENTIRE document and find ALL places where this information appears.
+
+Your task:
+1. Find EVERY mention of this information in the document
+2. Check if ALL mentions match the expected value: "{expected_value}"
+3. For names: Must match exactly (spelling, capitalization)
+4. List all locations checked
+5. Explain clearly to the user what you found
 
 Rule: {rule['name']}
-Task: {rule['description']}
 
 Expected Value: "{expected_value}"
 
 Document Content:
-{document_text[:10000]}
+{document_text[:15000]}
 
-You MUST respond with ONLY a valid JSON object in this exact format:
-{{"passed": true, "reason": "Found: [exact text from document]. Matches expected.", "location": "Found in: [describe where in document]"}} 
-OR
-{{"passed": false, "reason": "Found: [exact text from document]. Does not match expected.", "location": "Found in: [describe where in document]"}}
+Provide a clear explanation that helps the user understand:
+- What you found in the document
+- Where you found it (list all locations)
+- Whether it matches their expectation
+- If there are any inconsistencies
+
+Respond with a JSON object:
+{{
+  "passed": true/false,
+  "reason": "Clear explanation of what was found and whether it matches",
+  "locations": [
+    "Section/Location: value found",
+    "Another location: value found"
+  ]
+}}
 
 JSON response:"""
     else:
@@ -117,39 +171,50 @@ JSON response:"""
         result_text = response['message']['content'].strip()
         
         # Remove markdown code blocks if present
-        if result_text.startswith('```'):
+        if '```json' in result_text:
+            result_text = result_text.split('```json')[1].split('```')[0].strip()
+        elif result_text.startswith('```'):
             lines = result_text.split('\n')
             result_text = '\n'.join(lines[1:-1]) if len(lines) > 2 else result_text
-        
-        result_text = result_text.strip()
+            result_text = result_text.replace('```', '').strip()
         
         # Try to extract JSON from the response
-        # Sometimes LLMs add extra text, so we look for the JSON object
         start = result_text.find('{')
         end = result_text.rfind('}') + 1
         if start != -1 and end > start:
             result_text = result_text[start:end]
         else:
-            raise ValueError(f"No valid JSON found in response: {result_text[:200]}")
+            raise ValueError(f"No valid JSON found in response")
         
         # Clean up common JSON formatting issues
-        result_text = result_text.replace('\n', ' ').replace('\r', '')
+        result_text = result_text.replace('\n', ' ').replace('\r', '').replace('\t', ' ')
+        # Remove any text after the closing brace
+        if '}' in result_text:
+            result_text = result_text[:result_text.rfind('}')+1]
         
         result = json.loads(result_text)
+        
+        # Handle both single location and locations array for backward compatibility
+        locations = result.get('locations', [])
+        if not locations and 'location' in result:
+            locations = [result['location']]
+        
         return {
             'passed': result.get('passed', False),
             'reason': result.get('reason', 'No reason provided'),
-            'location': result.get('location', 'Location not specified')
+            'locations': locations
         }
     except json.JSONDecodeError as e:
         return {
             'passed': False,
-            'reason': f'LLM response parsing error. Please try again. (Invalid JSON: {str(e)})'
+            'reason': f'Unable to parse validation result. Please try again.',
+            'locations': ['Error occurred during validation']
         }
     except Exception as e:
         return {
             'passed': False,
-            'reason': f'Error checking rule: {str(e)}'
+            'reason': f'Error during validation: {str(e)}',
+            'locations': ['Validation error']
         }
 
 @app.route('/')
@@ -195,7 +260,7 @@ def upload_file():
                 'description': rule['description'],
                 'passed': rule_result['passed'],
                 'reason': rule_result['reason'],
-                'location': rule_result.get('location', '')
+                'locations': rule_result.get('locations', [])
             })
         
         # Clean up uploaded file

@@ -2,14 +2,14 @@
   "rules": [
     {
       "name": "Service Organization Name",
-      "description": "Extract the service organization name from the report and verify it EXACTLY matches the expected name. The names must be identical - even minor differences in spelling, capitalization, or punctuation should result in failure.",
+      "description": "Validate service organization name",
       "requires_input": true,
       "input_label": "Expected Service Organization Name",
       "input_key": "service_org_name"
     },
     {
       "name": "Audit Period",
-      "description": "Extract both the start date and end date of the audit period from the report. Verify that BOTH dates EXACTLY match the expected dates. Even if the meaning is the same (e.g., '1 Jan' vs 'January 1'), they must match the expected format and values precisely.",
+      "description": "Validate audit period dates",
       "requires_input": true,
       "input_label": "Expected Audit Period",
       "input_key": "audit_period",
@@ -17,14 +17,14 @@
     },
     {
       "name": "Report Type Classification",
-      "description": "Extract the exact report type from the document (must explicitly state SOC 1 or SOC 2, and Type I or Type II). Verify it EXACTLY matches the expected report type. Be very strict - do not infer or assume the type.",
+      "description": "Validate report type",
       "requires_input": true,
       "input_label": "Expected Report Type (e.g., SOC 2 Type II)",
       "input_key": "report_type"
     },
     {
       "name": "Report Specificity",
-      "description": "Determine if the report is generic (for multiple users) or user-entity specific (for a particular organization). Verify it matches the expected specificity.",
+      "description": "Validate report specificity",
       "requires_input": true,
       "input_label": "Expected Specificity (generic or user-specific)",
       "input_key": "report_specificity"
