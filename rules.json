@@ -1,0 +1,14 @@
+{
+  "checks": [
+    {
+      "id": "client_name",
+      "description": "Verify that the client name in the report matches the provided name.",
+      "prompt": "Check if the client name is exactly '${clientName}'. Report any discrepancies."
+    },
+    {
+      "id": "audit_period",
+      "description": "Verify that the audit period dates in the report match the provided dates.",
+      "prompt": "Check if the audit period is from '${startDate}' to '${endDate}'. Ensure all date mentions are consistent."
+    }
+  ]
+}
