@@ -71,10 +71,12 @@ Respond with a JSON object:
   "passed": "passed"/"partial"/"failed",
   "reason": "Found X locations with audit dates. Y locations match expected dates. [If conflicts: Z locations have different/conflicting dates: list them]. Overall assessment: [explain]",
   "locations": [
-    "Section Name: 'exact date text from document' - Analysis: [explain why these dates match or conflict with expected]",
-    "Another Section: 'exact date text from document' - Analysis: [explain why these dates match or conflict with expected]"
+    "Section Name - exact date text from document - Analysis: explain why these dates match or conflict with expected",
+    "Another Section - exact date text from document - Analysis: explain why these dates match or conflict with expected"
   ]
 }}
+
+IMPORTANT: In the "locations" array, write plain text strings only. DO NOT use dictionary/object syntax like {{'key': 'value'}}. Just write normal sentences.
 
 JSON response:"""
         else:
@@ -111,11 +113,13 @@ Respond with a JSON object:
   "passed": "passed"/"partial"/"failed",
   "reason": "Primary type: [type]. Expected: [expected]. Found X mentions. [If conflicts: CONFLICT: found mention of [conflicting type]]",
   "locations": [
-    "Title/Header: 'exact text snippet' - Analysis: [explain if this matches expected type]",
-    "Section: 'exact text snippet' - Analysis: [explain if this matches expected type]",
-    "[If conflict] Location: 'exact text showing wrong type' - Analysis: [explain why this conflicts with expected]"
+    "Title/Header - exact text snippet - Analysis: explain if this matches expected type",
+    "Section - exact text snippet - Analysis: explain if this matches expected type",
+    "[If conflict] Location - exact text showing wrong type - Analysis: explain why this conflicts with expected"
   ]
 }}
+
+IMPORTANT: In the "locations" array, write plain text strings only. DO NOT use dictionary/object syntax like {{'key': 'value'}}. Just write normal sentences.
 
 JSON response:"""
             else:
@@ -155,10 +159,12 @@ Respond with a JSON object:
   "passed": "passed"/"partial"/"failed",
   "reason": "Analysis: [Describe evidence found]. Determination: This is a [generic/user-specific] report because [reasoning]. Expected: {expected_value}. [MATCH or MISMATCH and why]",
   "locations": [
-    "Evidence: 'exact text snippet showing addressing or client references'",
+    "Evidence - exact text snippet showing addressing or client references",
     "[Additional evidence if any]"
   ]
 }}
+
+IMPORTANT: In the "locations" array, write plain text strings only. DO NOT use dictionary/object syntax like {{'key': 'value'}}. Just write normal sentences.
 
 IMPORTANT: Match the determination to expectation:
 - If you determine it's generic and expected is generic → "passed"
@@ -201,10 +207,12 @@ Respond with a JSON object:
   "passed": "passed"/"partial"/"failed",
   "reason": "Found X total mentions of organization name. Expected: '{expected_value}'. All mentions contain this name [or Y mentions use different names]. [Brief explanation]",
   "locations": [
-    "Section/Location Name: 'exact text snippet from document' - Analysis: [explain why this matches or differs from expected]",
-    "Another Location: 'exact text snippet from document' - Analysis: [explain why this matches or differs from expected]"
+    "Section/Location Name - exact text snippet from document - Analysis: explain why this matches or differs from expected",
+    "Another Location - exact text snippet from document - Analysis: explain why this matches or differs from expected"
   ]
 }}
+
+IMPORTANT: In the "locations" array, write plain text strings only. DO NOT use dictionary/object syntax like {{'key': 'value'}}. Just write normal sentences.
 
 JSON response:"""
     else:
@@ -262,6 +270,32 @@ JSON response:"""
         locations = result.get('locations', [])
         if not locations and 'location' in result:
             locations = [result['location']]
+        
+        # Ensure all locations are strings and clean up dictionary-formatted strings
+        cleaned_locations = []
+        for loc in locations:
+            loc_str = str(loc) if not isinstance(loc, str) else loc
+            
+            # If the string looks like a Python dict (starts with { or contains ': '), 
+            # try to parse and reformat it
+            if (loc_str.startswith('{') or '\': \'' in loc_str or '": "' in loc_str):
+                try:
+                    # Try to evaluate it as a Python literal
+                    import ast
+                    loc_dict = ast.literal_eval(loc_str)
+                    if isinstance(loc_dict, dict):
+                        # Reformat as plain text
+                        parts = []
+                        for key, value in loc_dict.items():
+                            parts.append(f"{value}")
+                        loc_str = " - ".join(parts)
+                except:
+                    # If parsing fails, just use the original string
+                    pass
+            
+            cleaned_locations.append(loc_str)
+        
+        locations = cleaned_locations
         
         # Handle passed field which can be boolean or string ("passed", "partial", "failed")
         passed_value = result.get('passed', False)
