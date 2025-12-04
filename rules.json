@@ -1,44 +1,39 @@
 {
   "rules": [
     {
-      "name": "Executive Summary Present",
-      "description": "The report must contain an executive summary that provides a high-level overview of the audit scope, objectives, and key findings."
+      "name": "Service Organization Name",
+      "description": "Verify that the report identifies the service organization name (the company being audited).",
+      "requires_input": true,
+      "input_label": "Expected Service Organization Name",
+      "input_key": "service_org_name"
     },
     {
-      "name": "Audit Period Clearly Stated",
-      "description": "The report must clearly state the audit period, including the start and end dates of the examination."
+      "name": "Audit Period Start Date",
+      "description": "Verify that the audit period start date in the report matches the expected date.",
+      "requires_input": true,
+      "input_label": "Expected Audit Start Date",
+      "input_key": "audit_start_date"
     },
     {
-      "name": "Service Organization Description",
-      "description": "The report must include a detailed description of the service organization's system, including the services provided and system boundaries."
+      "name": "Audit Period End Date",
+      "description": "Verify that the audit period end date in the report matches the expected date.",
+      "requires_input": true,
+      "input_label": "Expected Audit End Date",
+      "input_key": "audit_end_date"
     },
     {
-      "name": "Control Objectives Defined",
-      "description": "The report must clearly define control objectives that the controls are intended to achieve."
+      "name": "Report Type Classification",
+      "description": "Verify that the report type (SOC 1 or SOC 2, Type I or Type II) matches the expected classification.",
+      "requires_input": true,
+      "input_label": "Expected Report Type (e.g., SOC 2 Type II)",
+      "input_key": "report_type"
     },
     {
-      "name": "Auditor Opinion Included",
-      "description": "The report must include the auditor's opinion on whether the controls were suitably designed and operating effectively."
-    },
-    {
-      "name": "Management Assertion Present",
-      "description": "The report must contain management's assertion about the effectiveness of controls."
-    },
-    {
-      "name": "Test of Controls Documentation",
-      "description": "For Type 2 reports, the report must document tests of controls performed by the auditor."
-    },
-    {
-      "name": "Exception Reporting",
-      "description": "Any exceptions or deficiencies in controls must be clearly documented with their impact."
-    },
-    {
-      "name": "Trust Services Criteria Referenced",
-      "description": "The report must reference the appropriate Trust Services Criteria (Security, Availability, Processing Integrity, Confidentiality, Privacy)."
-    },
-    {
-      "name": "Third-Party Assurance",
-      "description": "The report must be prepared by an independent qualified auditor or audit firm."
+      "name": "Report Specificity",
+      "description": "Verify that the report specificity (generic or user-entity specific) matches expectations.",
+      "requires_input": true,
+      "input_label": "Expected Specificity (generic or user-specific)",
+      "input_key": "report_specificity"
     }
   ]
 }

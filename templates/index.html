@@ -38,6 +38,38 @@
             margin-bottom: 30px;
         }
 
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
         .upload-area {
             border: 3px dashed #667eea;
             border-radius: 8px;
@@ -278,6 +310,35 @@
         <h1>📋 SOC Report Review Tool</h1>
 
         <div class="upload-section">
+            <h2 style="margin-bottom: 30px; color: #333;">Expected Values</h2>
+            <form id="reviewForm">
+                <div class="form-group">
+                    <label for="serviceOrgName">Service Organization Name</label>
+                    <input type="text" id="serviceOrgName" name="service_org_name" placeholder="e.g., CloudTech Solutions, Inc." required>
+                </div>
+                <div class="form-group">
+                    <label for="auditStartDate">Audit Period Start Date</label>
+                    <input type="text" id="auditStartDate" name="audit_start_date" placeholder="e.g., January 1, 2025" required>
+                </div>
+                <div class="form-group">
+                    <label for="auditEndDate">Audit Period End Date</label>
+                    <input type="text" id="auditEndDate" name="audit_end_date" placeholder="e.g., June 30, 2025" required>
+                </div>
+                <div class="form-group">
+                    <label for="reportType">Report Type</label>
+                    <input type="text" id="reportType" name="report_type" placeholder="e.g., SOC 2 Type II" required>
+                </div>
+                <div class="form-group">
+                    <label for="reportSpecificity">Report Specificity</label>
+                    <select id="reportSpecificity" name="report_specificity" required>
+                        <option value="">Select...</option>
+                        <option value="generic">Generic (multiple users)</option>
+                        <option value="user-specific">User-Entity Specific</option>
+                    </select>
+                </div>
+            </form>
+            
+            <h2 style="margin: 40px 0 20px; color: #333;">Upload SOC Report</h2>
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📄</div>
                 <div class="upload-text">Drop your SOC report here or click to browse</div>
@@ -369,8 +430,24 @@
         uploadBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
 
+            // Validate form
+            const form = document.getElementById('reviewForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', selectedFile);
+            
+            // Add form fields to formData
+            const formInputs = form.elements;
+            for (let i = 0; i < formInputs.length; i++) {
+                const input = formInputs[i];
+                if (input.name) {
+                    formData.append(input.name, input.value);
+                }
+            }
 
             uploadBtn.disabled = true;
             loading.style.display = 'block';
@@ -438,6 +515,7 @@
             uploadBtn.style.display = 'none';
             errorMessage.style.display = 'none';
             results.style.display = 'none';
+            document.getElementById('reviewForm').reset();
             document.querySelector('.upload-section').style.display = 'block';
         }
     </script>

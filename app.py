@@ -30,9 +30,29 @@ def load_rules():
     with open('rules.json', 'r') as f:
         return json.load(f)
 
-def check_rule_with_llm(rule, document_text):
+def check_rule_with_llm(rule, document_text, user_inputs=None):
     """Check a single rule against the document using local LLM"""
-    prompt = f"""You are reviewing a SOC report. You need to determine if the following rule is satisfied.
+    
+    # Build the prompt based on whether the rule requires user input
+    if rule.get('requires_input') and user_inputs:
+        input_key = rule.get('input_key')
+        expected_value = user_inputs.get(input_key, '')
+        
+        prompt = f"""You are reviewing a SOC report. You need to validate information against expected values.
+
+Rule: {rule['name']}
+Description: {rule['description']}
+
+Expected Value: {expected_value}
+
+Document Content:
+{document_text[:8000]}  # Limit to avoid token limits
+
+Does the document contain information that matches the expected value?
+Respond with ONLY a JSON object in this exact format:
+{{"passed": true/false, "reason": "brief explanation including what was found in the document"}}"""
+    else:
+        prompt = f"""You are reviewing a SOC report. You need to determine if the following rule is satisfied.
 
 Rule: {rule['name']}
 Description: {rule['description']}
@@ -98,13 +118,18 @@ def upload_file():
         # Extract text from document
         document_text = extract_text_from_docx(filepath)
         
+        # Get user inputs from form data
+        user_inputs = {}
+        for key in request.form:
+            user_inputs[key] = request.form[key]
+        
         # Load rules
         rules = load_rules()
         
         # Check each rule
         results = []
         for rule in rules['rules']:
-            rule_result = check_rule_with_llm(rule, document_text)
+            rule_result = check_rule_with_llm(rule, document_text, user_inputs)
             results.append({
                 'rule_name': rule['name'],
                 'description': rule['description'],
