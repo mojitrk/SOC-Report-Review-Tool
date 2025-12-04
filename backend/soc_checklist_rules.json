@@ -2,59 +2,17 @@
   "rules": [
     {
       "id": "rule_001",
-      "name": "Audit Period Mentioned",
-      "description": "Verify that the audit period (from and to dates) is clearly stated in the report",
-      "keywords": ["audit period", "period covered", "from", "to", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      "name": "Client Name Verification",
+      "description": "Verify that all occurrences of the client name in the report match EXACTLY the client name provided by the user, with no misspellings, variations, or inconsistencies. Case-sensitive matching is required.",
+      "type": "client_name",
       "importance": "critical"
     },
     {
       "id": "rule_002",
-      "name": "Client Entity Name Mentioned",
-      "description": "Verify that the client entity/company name is mentioned in the report",
-      "keywords": ["entity", "company", "organization", "client name", "subject to audit"],
+      "name": "Audit Period Verification",
+      "description": "Verify that the audit period (start and end dates) mentioned anywhere in the report matches EXACTLY the dates provided by the user. Any discrepancy or inconsistency in dates will be flagged with specific locations in the document.",
+      "type": "audit_period",
       "importance": "critical"
-    },
-    {
-      "id": "rule_003",
-      "name": "Management Responsibility",
-      "description": "Verify that management's responsibility for internal controls is stated",
-      "keywords": ["management responsibility", "responsible for", "controls", "risk", "mitigation"],
-      "importance": "high"
-    },
-    {
-      "id": "rule_004",
-      "name": "Scope of Work Defined",
-      "description": "Verify that the scope of the engagement/audit is clearly defined",
-      "keywords": ["scope", "scope of work", "engagement", "objectives", "areas covered"],
-      "importance": "high"
-    },
-    {
-      "id": "rule_005",
-      "name": "Testing Procedures Documented",
-      "description": "Verify that testing procedures and methodologies are documented",
-      "keywords": ["testing", "procedures", "methodology", "sampling", "performed", "tested"],
-      "importance": "high"
-    },
-    {
-      "id": "rule_006",
-      "name": "Control Exceptions Noted",
-      "description": "Verify that any exceptions or deviations in controls are documented",
-      "keywords": ["exception", "deviation", "finding", "deficiency", "issue", "observed"],
-      "importance": "high"
-    },
-    {
-      "id": "rule_007",
-      "name": "Auditor Sign-Off",
-      "description": "Verify that the report is signed or acknowledged by the auditor",
-      "keywords": ["signed", "approved", "auditor", "reviewed", "confirmed", "authorization"],
-      "importance": "critical"
-    },
-    {
-      "id": "rule_008",
-      "name": "Conclusion Provided",
-      "description": "Verify that a conclusion or opinion regarding controls is provided",
-      "keywords": ["conclusion", "opinion", "assessment", "effective", "ineffective", "adequate", "determine"],
-      "importance": "high"
     }
   ]
 }

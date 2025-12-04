@@ -49,8 +49,78 @@
 
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 300px 1fr 1fr;
             gap: 20px;
+        }
+
+        .sidebar {
+            background: linear-gradient(135deg, #1a2356 0%, #0f1535 100%);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid #2a3f7f;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar h3 {
+            color: #4db8ff;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 2px solid #2a5a8f;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #a0b0d0;
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #2a5a8f;
+            border-radius: 6px;
+            background: #0a0e27;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4db8ff;
+            box-shadow: 0 0 8px rgba(77, 184, 255, 0.2);
+        }
+
+        .form-group input::placeholder {
+            color: #5a6a8a;
+        }
+
+        .info-box {
+            background: rgba(77, 184, 255, 0.1);
+            border-left: 3px solid #4db8ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #a0b0d0;
+            line-height: 1.5;
+        }
+
+        .info-box strong {
+            color: #4db8ff;
         }
 
         .panel {
@@ -165,6 +235,17 @@
             padding: 10px 16px;
             font-size: 14px;
             margin-top: 0;
+        }
+
+        .btn-remove {
+            background: linear-gradient(135deg, #8b2c2c 0%, #5a1a1a 100%) !important;
+            border-color: #ef5350 !important;
+        }
+
+        .btn-remove:hover {
+            background: linear-gradient(135deg, #a63838 0%, #7a2c2c 100%) !important;
+            border-color: #f55454 !important;
+            box-shadow: 0 4px 16px rgba(239, 83, 80, 0.2) !important;
         }
 
         button {
@@ -411,7 +492,32 @@
         </header>
 
         <div class="main-content">
-            <!-- Input Panel -->
+            <!-- Sidebar - Input Panel -->
+            <div class="sidebar">
+                <h3>📋 Audit Details</h3>
+                
+                <div class="form-group">
+                    <label for="clientName">Client Name</label>
+                    <input type="text" id="clientName" placeholder="e.g., ACME Corporation" />
+                </div>
+
+                <div class="form-group">
+                    <label for="auditStart">Audit Period - Start</label>
+                    <input type="text" id="auditStart" placeholder="e.g., January 1, 2024" />
+                </div>
+
+                <div class="form-group">
+                    <label for="auditEnd">Audit Period - End</label>
+                    <input type="text" id="auditEnd" placeholder="e.g., December 31, 2024" />
+                </div>
+
+                <div class="info-box">
+                    <strong>ℹ️ How it works:</strong><br>
+                    Enter the expected audit details above. Upload a report, and we'll verify that all information matches exactly.
+                </div>
+            </div>
+
+            <!-- Input Panel - File Upload -->
             <div class="panel">
                 <h2>📄 SOC Report</h2>
                 
@@ -502,8 +608,22 @@
         }
 
         async function reviewReport() {
+            const clientName = document.getElementById('clientName').value.trim();
+            const auditStart = document.getElementById('auditStart').value.trim();
+            const auditEnd = document.getElementById('auditEnd').value.trim();
+
             if (!selectedFile) {
                 document.getElementById('results').innerHTML = '<div class="error">Please select a file first.</div>';
+                return;
+            }
+
+            if (!clientName) {
+                document.getElementById('results').innerHTML = '<div class="error">Please enter the client name.</div>';
+                return;
+            }
+
+            if (!auditStart || !auditEnd) {
+                document.getElementById('results').innerHTML = '<div class="error">Please enter the audit period (start and end dates).</div>';
                 return;
             }
 
@@ -518,6 +638,9 @@
             try {
                 const formData = new FormData();
                 formData.append('file', selectedFile);
+                formData.append('client_name', clientName);
+                formData.append('audit_start', auditStart);
+                formData.append('audit_end', auditEnd);
 
                 const response = await fetch(`${API_URL}/upload`, {
                     method: 'POST',
