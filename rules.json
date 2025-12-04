@@ -1,14 +1,44 @@
 {
-  "checks": [
+  "rules": [
     {
-      "id": "client_name",
-      "description": "Verify that the client name in the report matches the provided name.",
-      "prompt": "Check if the client name is exactly '${clientName}'. Report any discrepancies."
+      "name": "Executive Summary Present",
+      "description": "The report must contain an executive summary that provides a high-level overview of the audit scope, objectives, and key findings."
     },
     {
-      "id": "audit_period",
-      "description": "Verify that the audit period dates in the report match the provided dates.",
-      "prompt": "Check if the audit period is from '${startDate}' to '${endDate}'. Ensure all date mentions are consistent."
+      "name": "Audit Period Clearly Stated",
+      "description": "The report must clearly state the audit period, including the start and end dates of the examination."
+    },
+    {
+      "name": "Service Organization Description",
+      "description": "The report must include a detailed description of the service organization's system, including the services provided and system boundaries."
+    },
+    {
+      "name": "Control Objectives Defined",
+      "description": "The report must clearly define control objectives that the controls are intended to achieve."
+    },
+    {
+      "name": "Auditor Opinion Included",
+      "description": "The report must include the auditor's opinion on whether the controls were suitably designed and operating effectively."
+    },
+    {
+      "name": "Management Assertion Present",
+      "description": "The report must contain management's assertion about the effectiveness of controls."
+    },
+    {
+      "name": "Test of Controls Documentation",
+      "description": "For Type 2 reports, the report must document tests of controls performed by the auditor."
+    },
+    {
+      "name": "Exception Reporting",
+      "description": "Any exceptions or deficiencies in controls must be clearly documented with their impact."
+    },
+    {
+      "name": "Trust Services Criteria Referenced",
+      "description": "The report must reference the appropriate Trust Services Criteria (Security, Availability, Processing Integrity, Confidentiality, Privacy)."
+    },
+    {
+      "name": "Third-Party Assurance",
+      "description": "The report must be prepared by an independent qualified auditor or audit firm."
     }
   ]
 }

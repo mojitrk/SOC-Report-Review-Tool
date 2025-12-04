@@ -1,31 +1,115 @@
 # SOC Report Review Tool
 
-A tool for reviewing SOC 1 and SOC 2 reports using LLM-based checks.
+An AI-powered tool for reviewing SOC (System and Organization Controls) reports against compliance rules using a local LLM.
+
+## Features
+
+- 📄 Upload Word (.docx) SOC reports
+- 🤖 Local LLM analysis (no cloud services needed)
+- ✅ Automated rule checking without regex
+- 📊 Clear pass/fail results with explanations
+- 🎨 Modern, intuitive web interface
 
 ## Prerequisites
 
-- Python 3.x installed
-- Ollama installed and running locally (download from https://ollama.ai/)
-- Pull a model, e.g., `ollama pull llama2`
+- Python 3.8 or higher
+- [Ollama](https://ollama.ai/) installed and running
 
-## Setup and Run
+## Setup Instructions
 
-1. Double-click `setup_and_run.bat` to install dependencies and start the server.
-   - This will install Python packages and run the Flask app on `http://localhost:5000`.
+### 1. Install Ollama
 
-2. Alternatively, manually:
-   - `cd backend`
-   - `pip install -r requirements.txt`
-   - `python app.py`
+Download and install Ollama from [https://ollama.ai/](https://ollama.ai/)
 
-3. Open `http://localhost:5000` in your browser.
+### 2. Pull the LLM Model
+
+```powershell
+ollama pull llama3.2:3b
+```
+
+This downloads a small, efficient 3B parameter model (about 2GB). You can use other models by modifying `app.py`.
+
+### 3. Install Python Dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+### 4. Run the Application
+
+```powershell
+python app.py
+```
+
+The application will start on `http://localhost:5000`
 
 ## Usage
 
-- Enter the expected client name and audit period dates.
-- Upload a .docx SOC report.
-- Click "Review Report" to get an LLM-based analysis.
+1. Open your browser and navigate to `http://localhost:5000`
+2. Upload a SOC report (.docx file)
+3. Click "Review Report"
+4. Wait for the AI analysis to complete
+5. Review the results showing which rules passed or failed
 
-## Rules
+## Customizing Rules
 
-Checks are defined in `rules.json`. Add or modify checks there to customize the review process.
+Edit `rules.json` to add, remove, or modify compliance rules. Each rule should have:
+
+```json
+{
+  "name": "Rule Name",
+  "description": "Detailed description of what the rule checks for"
+}
+```
+
+The LLM will analyze the document and determine if each rule is satisfied based on the description.
+
+## How It Works
+
+1. **Upload**: The app accepts Word documents and extracts their text content
+2. **Analysis**: Each rule is sent to the local LLM along with the document content
+3. **Evaluation**: The LLM determines if the rule is satisfied and provides reasoning
+4. **Results**: Clear pass/fail status is displayed with explanations
+
+## Minimal Dependencies
+
+This tool uses only essential packages:
+- **Flask**: Lightweight web framework
+- **python-docx**: Word document parsing
+- **ollama**: Local LLM integration
+- **werkzeug**: Secure file handling
+
+No complex NLP libraries, no cloud APIs, no regex patterns needed.
+
+## Why Local LLM?
+
+- **Privacy**: Your documents never leave your machine
+- **Cost**: No API fees or rate limits
+- **Flexibility**: Easy to swap models and customize behavior
+- **Intelligence**: LLMs understand context better than regex patterns
+
+## Troubleshooting
+
+### Ollama not found
+Make sure Ollama is installed and running. Test with:
+```powershell
+ollama list
+```
+
+### Model not found
+Pull the model first:
+```powershell
+ollama pull llama3.2:3b
+```
+
+### Out of memory
+Use a smaller model like `llama3.2:1b` or increase your system memory.
+
+### Slow analysis
+- Use a smaller model
+- Reduce document size
+- Consider using GPU acceleration if available
+
+## License
+
+MIT License - Feel free to use and modify as needed.

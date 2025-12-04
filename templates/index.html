@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC Report Review Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #f0f0ff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0ff;
+            border-radius: 6px;
+            color: #333;
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+            display: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .summary {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .summary h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat.passed .stat-number {
+            color: #10b981;
+        }
+
+        .stat.failed .stat-number {
+            color: #ef4444;
+        }
+
+        .stat.total .stat-number {
+            color: #667eea;
+        }
+
+        .rule-results {
+            display: grid;
+            gap: 20px;
+        }
+
+        .rule-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+        }
+
+        .rule-card.passed {
+            border-left-color: #10b981;
+        }
+
+        .rule-card.failed {
+            border-left-color: #ef4444;
+        }
+
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .rule-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .rule-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .rule-status.passed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .rule-status.failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .rule-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .rule-reason {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            color: #333;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .reset-btn {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            margin-top: 30px;
+        }
+
+        .reset-btn:hover {
+            background: #f8f9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 SOC Report Review Tool</h1>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Drop your SOC report here or click to browse</div>
+                <div class="upload-subtext">Only .docx files are supported</div>
+            </div>
+            <input type="file" id="fileInput" accept=".docx">
+            <div class="file-name" id="fileName"></div>
+            <button class="btn" id="uploadBtn">Review Report</button>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing your SOC report with AI...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="summary">
+                <h2>Review Summary</h2>
+                <div class="stats">
+                    <div class="stat total">
+                        <div class="stat-number" id="totalRules">0</div>
+                        <div class="stat-label">Total Rules</div>
+                    </div>
+                    <div class="stat passed">
+                        <div class="stat-number" id="passedRules">0</div>
+                        <div class="stat-label">Passed</div>
+                    </div>
+                    <div class="stat failed">
+                        <div class="stat-number" id="failedRules">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                </div>
+                <button class="btn reset-btn" onclick="resetApp()">Review Another Report</button>
+            </div>
+
+            <div class="rule-results" id="ruleResults"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const errorMessage = document.getElementById('errorMessage');
+        let selectedFile = null;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file.name.endsWith('.docx')) {
+                showError('Please select a .docx file');
+                return;
+            }
+            selectedFile = file;
+            fileName.textContent = `Selected: ${file.name}`;
+            fileName.style.display = 'block';
+            uploadBtn.style.display = 'inline-block';
+            errorMessage.style.display = 'none';
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            uploadBtn.disabled = true;
+            loading.style.display = 'block';
+            document.querySelector('.upload-section').style.display = 'none';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Upload failed');
+                }
+
+                displayResults(data);
+            } catch (error) {
+                showError(error.message);
+                document.querySelector('.upload-section').style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            document.getElementById('totalRules').textContent = data.summary.total;
+            document.getElementById('passedRules').textContent = data.summary.passed;
+            document.getElementById('failedRules').textContent = data.summary.failed;
+
+            const ruleResults = document.getElementById('ruleResults');
+            ruleResults.innerHTML = '';
+
+            data.results.forEach(result => {
+                const card = document.createElement('div');
+                card.className = `rule-card ${result.passed ? 'passed' : 'failed'}`;
+                card.innerHTML = `
+                    <div class="rule-header">
+                        <div class="rule-name">${result.rule_name}</div>
+                        <div class="rule-status ${result.passed ? 'passed' : 'failed'}">
+                            ${result.passed ? '✓ Passed' : '✗ Failed'}
+                        </div>
+                    </div>
+                    <div class="rule-description">${result.description}</div>
+                    <div class="rule-reason"><strong>Analysis:</strong> ${result.reason}</div>
+                `;
+                ruleResults.appendChild(card);
+            });
+
+            results.style.display = 'block';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function resetApp() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileName.style.display = 'none';
+            fileName.textContent = '';
+            uploadBtn.style.display = 'none';
+            errorMessage.style.display = 'none';
+            results.style.display = 'none';
+            document.querySelector('.upload-section').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
