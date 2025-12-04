@@ -38,14 +38,19 @@ def check_rule_with_llm(rule, document_text, user_inputs=None):
         input_key = rule.get('input_key')
         expected_value = user_inputs.get(input_key, '')
         
-        prompt = f"""You are a strict SOC report validator. Your job is to extract specific information from the report and verify it EXACTLY matches the expected value.
+        # Determine if this is a date-related rule for semantic matching
+        is_date_rule = 'audit_period' in input_key.lower() or 'date' in rule['name'].lower()
+        
+        if is_date_rule:
+            prompt = f"""You are a SOC report validator. Extract date information and verify it semantically matches the expected value.
 
-IMPORTANT INSTRUCTIONS:
-1. Extract the EXACT text from the document that relates to this rule
-2. Compare it character-by-character with the expected value
-3. Be EXTREMELY strict - even minor differences mean FAILURE
-4. If dates have the same meaning but different format (e.g., "Jan 1" vs "January 1"), that is still a MISMATCH
-5. Do NOT be lenient or forgiving - exact match only
+IMPORTANT INSTRUCTIONS FOR DATES:
+1. Find the EXACT text snippet from the document containing the dates
+2. Dates with the same MEANING should PASS even if formatted differently
+3. Examples of equivalent dates: "30 Jun", "30th June", "June 30", "30th of June" - all mean June 30
+4. "January 1, 2025", "1 Jan 2025", "1st January 2025" - all mean January 1, 2025
+5. The year, month, and day must match semantically, not character-by-character
+6. Extract the LOCATION in the document where you found this information (page number, section, or first few words of the paragraph)
 
 Rule: {rule['name']}
 Task: {rule['description']}
@@ -55,10 +60,33 @@ Expected Value: "{expected_value}"
 Document Content:
 {document_text[:10000]}
 
-You MUST respond with ONLY a valid JSON object (no markdown, no extra text) in this exact format:
-{{"passed": true, "reason": "Found: [exact text from document]. Matches expected value."}} 
+You MUST respond with ONLY a valid JSON object in this exact format:
+{{"passed": true, "reason": "Found: [exact text]. Semantically matches expected.", "location": "Found in: [describe where in document]"}} 
 OR
-{{"passed": false, "reason": "Found: [exact text from document]. Does not match expected: [expected value]."}}
+{{"passed": false, "reason": "Found: [exact text]. Does not match expected: [expected value].", "location": "Found in: [describe where in document]"}}
+
+JSON response:"""
+        else:
+            prompt = f"""You are a strict SOC report validator. Extract specific information and verify it matches the expected value.
+
+IMPORTANT INSTRUCTIONS:
+1. Find the EXACT text from the document that relates to this rule
+2. For names: Must match exactly (spelling, capitalization, punctuation)
+3. For report types: Look at the TITLE PAGE and HEADER - the report explicitly states what type it is (SOC 1/SOC 2, Type I/Type II)
+4. Extract the LOCATION where you found this information (section name, or first few words nearby)
+
+Rule: {rule['name']}
+Task: {rule['description']}
+
+Expected Value: "{expected_value}"
+
+Document Content:
+{document_text[:10000]}
+
+You MUST respond with ONLY a valid JSON object in this exact format:
+{{"passed": true, "reason": "Found: [exact text from document]. Matches expected.", "location": "Found in: [describe where in document]"}} 
+OR
+{{"passed": false, "reason": "Found: [exact text from document]. Does not match expected.", "location": "Found in: [describe where in document]"}}
 
 JSON response:"""
     else:
@@ -110,7 +138,8 @@ JSON response:"""
         result = json.loads(result_text)
         return {
             'passed': result.get('passed', False),
-            'reason': result.get('reason', 'No reason provided')
+            'reason': result.get('reason', 'No reason provided'),
+            'location': result.get('location', 'Location not specified')
         }
     except json.JSONDecodeError as e:
         return {
@@ -165,7 +194,8 @@ def upload_file():
                 'rule_name': rule['name'],
                 'description': rule['description'],
                 'passed': rule_result['passed'],
-                'reason': rule_result['reason']
+                'reason': rule_result['reason'],
+                'location': rule_result.get('location', '')
             })
         
         # Clean up uploaded file

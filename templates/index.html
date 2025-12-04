@@ -282,6 +282,16 @@
             color: #333;
             font-size: 0.95rem;
             line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .rule-location {
+            background: #fffbeb;
+            padding: 12px;
+            border-radius: 6px;
+            color: #92400e;
+            font-size: 0.9rem;
+            border-left: 3px solid #fbbf24;
         }
 
         .error-message {
@@ -483,6 +493,7 @@
             data.results.forEach(result => {
                 const card = document.createElement('div');
                 card.className = `rule-card ${result.passed ? 'passed' : 'failed'}`;
+                const locationHTML = result.location ? `<div class="rule-location"><strong>📍 Location:</strong> ${result.location}</div>` : '';
                 card.innerHTML = `
                     <div class="rule-header">
                         <div class="rule-name">${result.rule_name}</div>
@@ -492,6 +503,7 @@
                     </div>
                     <div class="rule-description">${result.description}</div>
                     <div class="rule-reason"><strong>Analysis:</strong> ${result.reason}</div>
+                    ${locationHTML}
                 `;
                 ruleResults.appendChild(card);
             });
