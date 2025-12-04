@@ -44,33 +44,35 @@ def check_rule_with_llm(rule, document_text, user_inputs=None):
         if is_date_rule:
             prompt = f"""You are validating audit period dates in a SOC report. Search the ENTIRE document for all date mentions.
 
+IMPORTANT: ONLY check sections that actually contain audit period dates. Skip sections with no dates.
+
 Your task:
-1. Find EVERY place where audit period dates are mentioned
-2. For EACH location, extract the EXACT TEXT snippet containing the dates
+1. Find EVERY place where audit period dates are ACTUALLY mentioned (skip sections without dates)
+2. For EACH location with dates, extract the EXACT TEXT snippet containing the dates
 3. Check if dates match the expected dates (semantically):
    - "January 1, 2025" = "1 Jan 2025" = "Jan 1, 2025" (all acceptable)
    - "June 30" = "30 June" = "30th of June" (all acceptable)
 4. Look for ANY conflicting or inconsistent dates throughout the document
 5. If MOST locations match but 1-2 have issues, return "partial"
-6. If dates are completely wrong or many conflicts exist, return false
+6. If dates are completely wrong or many conflicts exist, return "failed"
 
 Expected Dates: "{expected_value}"
 
 Document Content:
-{document_text[:15000]}
+{document_text[:20000]}
 
 Determine the status:
-- "passed": ALL mentions match expected dates perfectly
-- "partial": MOST mentions match, but found 1-2 inconsistencies or questionable dates
+- "passed": ALL date mentions match expected dates perfectly, no conflicts
+- "partial": MOST mentions match, but found 1-2 inconsistencies or questionable dates  
 - "failed": Many conflicts OR dates don't match expected at all
 
 Respond with a JSON object:
 {{
   "passed": "passed"/"partial"/"failed",
-  "reason": "Clear explanation with specific counts (e.g., '5 out of 6 locations match')",
+  "reason": "Checked X locations with dates. Found: [summary]. [X match, Y conflicts]",
   "locations": [
-    "Section Name: 'exact text snippet from document'",
-    "Another Section: 'exact text snippet from document'"
+    "Section Name: 'exact date text from document'",
+    "Another Section: 'exact date text from document'"
   ]
 }}
 
@@ -89,25 +91,27 @@ STEP 1 - EXTRACT ALL: Find EVERY place where report type is mentioned:
 STEP 2 - CHECK FOR CONFLICTS: 
 - Do all mentions agree on the same report type?
 - Are there any conflicting references (e.g., title says SOC 2 but body mentions SOC 1)?
-- Even one mention of wrong type is a conflict!
+- CRITICAL: Even ONE mention of wrong type is a conflict that should cause failure!
 
-STEP 3 - COMPARE: 
+STEP 3 - DETERMINE STATUS: 
 - Expected: "{expected_value}"
-- If ALL mentions match expected and no conflicts: "passed"
-- If mostly correct but 1-2 conflicting mentions: "partial" 
-- If wrong type or many conflicts: "failed"
+- If ALL mentions match expected and ZERO conflicts: "passed"
+- If ANY conflicting mention found (even 1): "partial" or "failed"
+- If primary type is wrong: "failed"
 
 Document Content:
-{document_text[:15000]}
+{document_text[:20000]}
+
+Be strict about conflicts. If you find ANY mention of a different SOC type or Type level, report it.
 
 Respond with a JSON object:
 {{
   "passed": "passed"/"partial"/"failed",
-  "reason": "This report is [type]. Expected: [expected]. Found X mentions, Y conflicts. [Explanation]",
+  "reason": "Primary type: [type]. Expected: [expected]. Found X mentions. [If conflicts: CONFLICT: found mention of [conflicting type]]",
   "locations": [
     "Title/Header: 'exact text snippet'",
     "Section: 'exact text snippet'",
-    "Conflict found: 'exact text snippet' (if any)"
+    "CONFLICT at [location]: 'exact text showing wrong type' (if any)"
   ]
 }}
 
@@ -115,69 +119,77 @@ JSON response:"""
             else:
                 # Special handling for report specificity - use reasoning
                 if 'specificity' in input_key.lower() or 'specificity' in rule['name'].lower():
+                    # Extract service org name from user inputs to exclude it from checks
+                    service_org = user_inputs.get('service_org_name', '')
                     prompt = f"""You are analyzing whether a SOC report is generic or user-entity specific.
 
 User expects: "{expected_value}"
+
+IMPORTANT: The service organization being audited is "{service_org}". DO NOT count this as the user entity.
+Only look for OTHER organizations (clients/customers) mentioned in the report.
 
 Analyze the document to determine specificity:
 
 Generic Report indicators:
 - Addressed "To Whom It May Concern" or "To Users of [Service Org] Services"
-- No specific client organization named as the recipient
-- Intended for broad distribution
-- Language like "users of this report" or "user entities"
+- No specific client/customer organization named (other than the service org itself)
+- Intended for broad distribution to multiple potential clients
+- Language like "users of this report" or "user entities" (plural)
 
 User-Entity Specific indicators:
-- Addressed to a specific company/organization
-- References a particular client by name
-- Custom scope or specific user entity controls mentioned
-- Language like "prepared for [Company Name]"
+- Addressed to a specific client/customer company (NOT the service org)
+- References a particular client by name (e.g., "prepared for ABC Corp")
+- Mentions a specific user entity organization that is the customer
+- Custom scope for a specific client mentioned
 
 Document Content:
-{document_text[:15000]}
+{document_text[:20000]}
 
 Provide reasoning about what type it is and whether it matches expectation.
+List any client/customer organizations found (excluding the service org).
 
 Respond with a JSON object:
 {{
   "passed": "passed"/"partial"/"failed",
-  "reason": "Based on [evidence], this appears to be a [generic/user-specific] report. [Match/mismatch explanation]",
+  "reason": "Based on [evidence], this appears to be a [generic/user-specific] report. [Found client org names or no specific client]. [Match/mismatch explanation]",
   "locations": [
-    "Evidence found: 'exact text snippet showing specificity indicators'"
+    "Evidence: 'exact text snippet showing addressing or client references'"
   ]
 }}
 
 JSON response:"""
                 else:
-                    prompt = f"""You are a SOC report validator. Search the ENTIRE document and find ALL places where this information appears.
+                    prompt = f"""You are a SOC report validator. Search the ENTIRE document thoroughly and find ALL places where this information appears.
 
 Your task:
-1. Find EVERY mention of this information in the document
-2. For EACH location, extract the EXACT TEXT snippet
-3. Check if ALL mentions match the expected value: "{expected_value}"
-4. For names: Must match exactly (spelling, capitalization)
-5. Look for ANY conflicting information (e.g., different names or values)
-6. If MOST mentions match but 1-2 have issues, return "partial"
+1. Scan the COMPLETE document - don't stop after finding just one occurrence
+2. Find EVERY single mention of this information (look in headers, body, footers, titles, sections)
+3. For EACH location, extract the EXACT TEXT snippet showing the information
+4. Check if ALL mentions match the expected value: "{expected_value}"
+5. For names: Must match exactly (spelling, capitalization, punctuation)
+6. Look for ANY conflicting information (e.g., different names, spellings, or values)
+7. List ALL locations found
 
 Rule: {rule['name']}
 
 Expected Value: "{expected_value}"
 
 Document Content:
-{document_text[:15000]}
+{document_text[:20000]}
 
 Determine the status:
 - "passed": ALL mentions match expected value perfectly, no conflicts
-- "partial": MOST mentions match, but found 1-2 inconsistencies or conflicts
-- "failed": Many conflicts OR value doesn't match expected at all
+- "partial": MOST mentions match (75%+), but found 1-2 inconsistencies or conflicts
+- "failed": Many conflicts (25%+) OR value doesn't match expected at all
 
 Respond with a JSON object:
 {{
   "passed": "passed"/"partial"/"failed",
-  "reason": "Clear explanation with counts if applicable (e.g., '4 out of 5 mentions match')",
+  "reason": "Found X total mentions. [X match exactly, Y have conflicts/differences]. [Brief explanation]",
   "locations": [
-    "Section Name: 'exact text snippet from document'",
-    "Another Section: 'exact text snippet from document'"
+    "Section/Location Name: 'exact text snippet from document'",
+    "Another Location: 'exact text snippet from document'",
+    "Yet Another Location: 'exact text snippet from document'"
   ]
 }}
 
@@ -241,9 +253,15 @@ JSON response:"""
         # Handle passed field which can be boolean or string ("passed", "partial", "failed")
         passed_value = result.get('passed', False)
         if isinstance(passed_value, str):
-            passed_status = passed_value.lower()
+            # Normalize the string value
+            passed_status = passed_value.lower().strip()
+            if passed_status not in ['passed', 'partial', 'failed']:
+                # If it's not a valid status string, treat as boolean
+                passed_status = "passed" if passed_value.lower() in ['true', 'yes'] else "failed"
         elif passed_value is True:
             passed_status = "passed"
+        elif passed_value is False:
+            passed_status = "failed"
         else:
             passed_status = "failed"
         
