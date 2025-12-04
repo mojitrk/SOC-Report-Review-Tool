@@ -1,0 +1,83 @@
+{
+  "checklist_name": "SOC 2 Report Validation Checklist",
+  "version": "1.0",
+  "rules": [
+    {
+      "rule_id": "audit_period_match",
+      "rule_name": "Audit Period Matches Expected",
+      "description": "The audit period in the report must match exactly with the specified audit period",
+      "severity": "critical",
+      "check_type": "exact_match",
+      "expected_value": "January 1, 2023 to December 31, 2023",
+      "pattern": "Period:\\s*(.+?)\\s*to\\s*(.+?)(?:\\.|\\n|$)",
+      "explanation": "FAILED: Audit period does not match expected value 'January 1, 2023 to December 31, 2023'"
+    },
+    {
+      "rule_id": "company_name",
+      "rule_name": "Company Name Present",
+      "description": "Report must mention the company name",
+      "severity": "critical",
+      "check_type": "keyword",
+      "keywords": ["Acme Cloud Services, Inc."],
+      "min_occurrences": 1,
+      "explanation": "FAILED: Report does not contain company name 'Acme Cloud Services, Inc.'"
+    },
+    {
+      "rule_id": "management_assertion",
+      "rule_name": "Management Assertion Section",
+      "description": "Report must have a Management Assertion section",
+      "severity": "critical",
+      "check_type": "section",
+      "section_name": "Management's Assertion",
+      "explanation": "FAILED: Report missing 'Management's Assertion' section"
+    },
+    {
+      "rule_id": "auditor_opinion",
+      "rule_name": "Auditor's Opinion Section",
+      "description": "Report must have an Auditor's Opinion section",
+      "severity": "critical",
+      "check_type": "section",
+      "section_name": "Auditor's Opinion",
+      "explanation": "FAILED: Report missing 'Auditor's Opinion' section"
+    },
+    {
+      "rule_id": "trust_criteria",
+      "rule_name": "All Trust Criteria Covered",
+      "description": "Report must address all five criteria: Security, Availability, Processing Integrity, Confidentiality, Privacy",
+      "severity": "critical",
+      "check_type": "keyword",
+      "keywords": ["Security", "Availability", "Processing Integrity", "Confidentiality", "Privacy"],
+      "min_occurrences": 5,
+      "explanation": "FAILED: Report does not cover all five Trust Services Criteria"
+    },
+    {
+      "rule_id": "encryption_mentioned",
+      "rule_name": "Encryption Standards Specified",
+      "description": "Report must mention specific encryption standards",
+      "severity": "high",
+      "check_type": "keyword",
+      "keywords": ["AES-256", "TLS 1.2", "encryption"],
+      "min_occurrences": 2,
+      "explanation": "FAILED: Report does not specify encryption standards (AES-256, TLS 1.2, etc.)"
+    },
+    {
+      "rule_id": "mfa_controls",
+      "rule_name": "MFA Controls Documented",
+      "description": "Report must document multi-factor authentication",
+      "severity": "high",
+      "check_type": "keyword",
+      "keywords": ["multi-factor authentication", "MFA"],
+      "min_occurrences": 1,
+      "explanation": "FAILED: Report does not document MFA controls"
+    },
+    {
+      "rule_id": "conclusion",
+      "rule_name": "Conclusion Section Present",
+      "description": "Report must have a conclusion",
+      "severity": "high",
+      "check_type": "section",
+      "section_name": "Conclusion",
+      "explanation": "FAILED: Report missing conclusion section"
+    }
+  ]
+}
